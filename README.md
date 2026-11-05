@@ -29,6 +29,12 @@ cd client && npm run build
 cd ../server && NODE_ENV=production JWT_SECRET=<chuỗi bí mật dài> npm start   # phục vụ cả web lẫn API ở cổng 4000
 ```
 
+## Vận hành trên VPS
+- Cập nhật code mới từ GitHub: `bash /opt/matong/scripts/update.sh`
+- Sao lưu (cần `apt install -y sqlite3`): `bash /opt/matong/scripts/backup.sh` → lưu ở `/root/matong-backups`, giữ 14 bản gần nhất.
+  Tự động mỗi ngày lúc 3h: `crontab -e` rồi thêm dòng `0 3 * * * bash /opt/matong/scripts/backup.sh >> /var/log/matong-backup.log 2>&1`
+- Khôi phục: `pm2 stop matong`, chép bản `.db` về `server/data/matong.db` (xóa `matong.db-wal`, `matong.db-shm` cũ), giải nén `files-*.tgz` vào `server/data`, rồi `pm2 start matong`.
+
 ## Biến môi trường
 | Biến | Nơi đặt | Tác dụng |
 |---|---|---|
