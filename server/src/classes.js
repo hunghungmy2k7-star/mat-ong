@@ -334,7 +334,7 @@ export function registerClassRoutes(app) {
     });
     if (!results.length) return res.status(400).json({ error: 'Chưa có kết quả để lưu' });
     const correct = results.filter((r) => r.correct).length;
-    const coins = correct * (REWARD[x.a.mode] || 10);
+    const coins = correct * (REWARD[x.a.mode] || 100);
     db.prepare('INSERT INTO assignment_attempts (assignment_id, user_id, correct, total, coins) VALUES (?, ?, ?, ?, ?)').run(x.a.id, req.user.id, correct, results.length, coins);
     db.prepare('INSERT INTO activity_log (user_id, day, mode, correct, total, score, coins) VALUES (?, ?, ?, ?, ?, ?, ?)')
       .run(req.user.id, vnDay(), x.a.mode, correct, results.length, coins, coins);

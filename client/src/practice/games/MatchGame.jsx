@@ -2,6 +2,8 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { Box, Flex, Text, Button, Grid } from '@chakra-ui/react';
 import GameShell, { useCountdown } from '../GameShell';
 import { playSound } from '../sound';
+import { speakWord } from '../../speech';
+import { useAuth } from '../../auth/AuthContext';
 import { showMeme } from '../meme';
 import { REWARD, shuffle } from '../utils';
 
@@ -17,6 +19,7 @@ export default function MatchGame({ items, settings, onFinish, onExit, onRestart
     return out;
   }, [items]);
   const [round, setRound] = useState(0);
+  const { user } = useAuth();
   const [lives, setLives] = useState(LIVES);
   const [matched, setMatched] = useState(new Set()); // id đã ghép trong vòng
   const [mistakes, setMistakes] = useState(new Set()); // id từng chọn sai
@@ -63,6 +66,8 @@ export default function MatchGame({ items, settings, onFinish, onExit, onRestart
     }
     const leftId = side === 'L' ? id : sel.id;
     const rightId = side === 'R' ? id : sel.id;
+    const leftItem = cur.find((it) => it.id === leftId);
+    if (leftItem) speakWord(leftItem.word, user?.settings || {});
     if (leftId === rightId) {
       playSound('correct', settings);
       showMeme(true);

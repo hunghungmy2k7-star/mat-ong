@@ -274,7 +274,7 @@ export default function Store() {
               </Grid>
             </Box>
           ))}
-          <Text fontSize="13px" color="app.muted" textAlign="center">Xu kiếm được khi học: mỗi câu trả lời đúng cộng 5–20 xu tùy chế độ.</Text>
+          <Text fontSize="13px" color="app.muted" textAlign="center">Xu kiếm được khi học: mỗi câu trả lời đúng cộng 50–200 xu tùy chế độ.</Text>
         </>
       )}
 

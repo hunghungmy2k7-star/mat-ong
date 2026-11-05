@@ -23,7 +23,7 @@ const STEPS = [
 ];
 const FAQ = [
   ['Mật Ong có mất phí không?', 'Không. Mọi tính năng đều miễn phí, không có gói trả phí hay giới hạn tính năng theo gói.'],
-  ['Xu dùng để làm gì?', 'Xu kiếm được khi học (mỗi câu đúng 5–20 xu). Bạn dùng xu để đổi ảnh đại diện, hình nền, meme, giao diện theo mùa hoặc đá giữ chuỗi ngày học trong Cửa hàng.'],
+  ['Xu dùng để làm gì?', 'Xu kiếm được khi học (mỗi câu đúng 50–200 xu). Bạn dùng xu để đổi ảnh đại diện, hình nền, meme, giao diện theo mùa hoặc đá giữ chuỗi ngày học trong Cửa hàng.'],
   ['Tính năng AI hoạt động thế nào?', 'AI giúp soạn từ vựng theo chủ đề, trích từ trong đoạn văn hoặc ảnh, và chấm câu bạn tự đặt. Mỗi tài khoản có cùng một số lượt AI mỗi ngày.'],
   ['Tôi có thể mang dữ liệu đi không?', 'Có. Mỗi bộ từ đều xuất được ra CSV hoặc Excel, và bạn có thể xóa tài khoản cùng toàn bộ dữ liệu trong phần Hồ sơ.'],
 ];

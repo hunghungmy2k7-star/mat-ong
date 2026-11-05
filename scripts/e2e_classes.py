@@ -128,7 +128,7 @@ with sync_playwright() as p:
     expect(ps.get_by_test_id(f'status-{aid}')).to_have_text('ĐẠT')
     ps.screenshot(path=str(OUT / '3-assignments-student.png'))
     me = stu.call('/auth/profile')['user']
-    assert me['coins'] == (3 + 5) * 10, me['coins']
+    assert me['coins'] == (3 + 5) * 100, me['coins']
     assert stu.call('/activity/streak')['activeToday']
 
     # --- giáo viên xem kết quả và tiến độ

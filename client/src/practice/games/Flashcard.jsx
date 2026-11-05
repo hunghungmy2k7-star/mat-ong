@@ -5,13 +5,18 @@ import GameShell from '../GameShell';
 import { playSound } from '../sound';
 import { showMeme } from '../meme';
 import { REWARD, isCorrectMeaning, isCorrectWord } from '../utils';
-import { speak } from '../../speech';
+import { speak, speakWord } from '../../speech';
 import { useAuth } from '../../auth/AuthContext';
 import { Btn3D } from '../../components/ui';
 
 const face = {
   position: 'absolute', inset: 0, borderRadius: '24px', color: 'white', p: '24px', display: 'flex', flexDirection: 'column',
-  alignItems: 'center', justifyContent: 'center', textAlign: 'center', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', backfaceVisibility: 'hidden',
+  alignItems: 'center', justifyContent: 'center', textAlign: 'center', boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+};
+const flipAnim = {
+  animation: 'cardFlip .28s ease-out',
+  '@keyframes cardFlip': { from: { transform: 'scaleX(0.05)', opacity: 0.6 }, to: { transform: 'scaleX(1)', opacity: 1 } },
+  '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
 };
 
 function Hint({ children }) {
@@ -48,6 +53,7 @@ export default function Flashcard({ items, settings, onFinish, onExit, onRestart
   const mark = useCallback((known) => {
     playSound(known ? 'correct' : 'wrong', settings);
     showMeme(known);
+    speakWord(item.word, s);
     const nextMarks = { ...marks, [item.id]: known };
     setMarks(nextMarks);
     if (idx + 1 >= items.length) {
@@ -85,6 +91,7 @@ export default function Flashcard({ items, settings, onFinish, onExit, onRestart
     setFlipped(true);
     playSound(ok ? 'correct' : 'wrong', settings);
     showMeme(ok);
+    speakWord(item.word, s);
   };
 
   const front = vnFirst
@@ -108,19 +115,22 @@ export default function Flashcard({ items, settings, onFinish, onExit, onRestart
         </Flex>
       }
     >
-      <Box maxW="564px" mx="auto" h={{ base: '340px', md: '400px' }} sx={{ perspective: '1200px' }} cursor="pointer" onClick={flip} data-testid="flashcard">
-        <Box position="relative" w="100%" h="100%" transition="transform .5s" sx={{ transformStyle: 'preserve-3d' }}
-          transform={flipped ? 'rotateY(180deg)' : 'none'}>
-          <Box {...face} bgGradient="linear(135deg, #667EEA 0%, #764BA2 100%)">
+      {/* Thẻ 2 mặt: mặt trước là từ tiếng Anh, mặt sau là nghĩa. Chỉ hiện một mặt tại một thời điểm,
+          hiệu ứng lật 2D (co giãn ngang) nên chữ không bao giờ bị ngược như lật 3D. */}
+      <Box maxW="564px" mx="auto" h={{ base: '340px', md: '400px' }} position="relative" cursor="pointer" onClick={flip} data-testid="flashcard"
+        data-side={flipped ? 'back' : 'front'}>
+        {!flipped ? (
+          <Box key={`f-${idx}`} {...face} bgGradient="linear(135deg, #667EEA 0%, #764BA2 100%)" sx={flipAnim}>
             <Text position="absolute" top="22px" fontSize="12px" fontWeight={600} letterSpacing="0.06em">{front.label}</Text>
-            <Text fontSize={{ base: '36px', md: '48px' }} fontWeight={800} lineHeight="1.1" color={vnFirst ? 'white' : '#1A202C'} wordBreak="break-word">{front.main}</Text>
+            <Text fontSize={{ base: '36px', md: '48px' }} fontWeight={800} lineHeight="1.1" color={vnFirst ? 'white' : '#1A202C'} wordBreak="break-word" data-testid="card-main">{front.main}</Text>
             {!vnFirst && item.pos && <Text mt="14px" bg="whiteAlpha.400" borderRadius="9999px" px="12px" py="3px" fontSize="14px" fontWeight={700}>{item.pos}</Text>}
             {!vnFirst && item.ipa && <Text mt="10px" fontSize="16px" fontStyle="italic">{item.ipa}</Text>}
             <Text position="absolute" bottom="22px" fontSize="12px">👆 Nhấn Space hoặc click để lật</Text>
           </Box>
-          <Box {...face} bgGradient="linear(135deg, #38B2AC 0%, #4299E1 100%)" transform="rotateY(180deg)">
+        ) : (
+          <Box key={`b-${idx}`} {...face} bgGradient="linear(135deg, #38B2AC 0%, #4299E1 100%)" sx={flipAnim}>
             <Text position="absolute" top="22px" fontSize="12px" fontWeight={600} letterSpacing="0.06em">{vnFirst ? 'TỪ TIẾNG ANH' : 'NGHĨA TIẾNG VIỆT'}</Text>
-            <Text fontSize={{ base: '32px', md: '44px' }} fontWeight={800} lineHeight="1.15" color="#1A202C" wordBreak="break-word">{vnFirst ? item.word : item.meaning}</Text>
+            <Text fontSize={{ base: '32px', md: '44px' }} fontWeight={800} lineHeight="1.15" color="#1A202C" wordBreak="break-word" data-testid="card-main">{vnFirst ? item.word : item.meaning}</Text>
             {vnFirst && item.ipa && <Text mt="10px" fontStyle="italic">{item.ipa}</Text>}
             {item.example && (
               <Flex mt="18px" bg="whiteAlpha.300" borderRadius="12px" px="14px" py="12px" align="center" gap="8px" maxW="100%">
@@ -132,7 +142,7 @@ export default function Flashcard({ items, settings, onFinish, onExit, onRestart
             {item.note && <Text mt="10px" fontSize="13px" opacity={0.95}>{item.note}</Text>}
             <Text position="absolute" bottom="22px" fontSize="12px">👆 Nhấn Space hoặc click để lật lại</Text>
           </Box>
-        </Box>
+        )}
       </Box>
 
       <Flex maxW="420px" mx="auto" mt="24px" gap="8px">

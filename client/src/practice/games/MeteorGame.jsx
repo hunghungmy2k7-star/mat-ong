@@ -5,7 +5,7 @@ import GameShell from '../GameShell';
 import { REWARD, shuffle, normalizeAnswer } from '../utils';
 import { playSound } from '../sound';
 import { showMeme } from '../meme';
-import { speak } from '../../speech';
+import { speak, speakWord } from '../../speech';
 import { useAuth } from '../../auth/AuthContext';
 
 const LIVES = 5;
@@ -67,11 +67,12 @@ export default function MeteorGame({ items, settings, onFinish, onExit, onRestar
     results.current.push({ item: m.item, correct });
     S.done += 1;
     if (correct) S.correct += 1; else S.lives -= 1;
+    speakWord(m.item.word, s);
     playSound(correct ? 'correct' : 'wrong', settings);
     showMeme(correct);
     setHud({ done: S.done, lives: S.lives, correct: S.correct });
     if (S.lives <= 0 || S.done >= queue.length) setTimeout(finish, 600);
-  }, [settings, queue.length, finish]);
+  }, [settings, queue.length, finish, s]);
 
   // Mục tiêu gợi ý = thiên thạch thấp nhất (sắp chạm đất)
   const lowest = () => st.current.meteors.filter((m) => !m.dead && !m.targeted).sort((a, b) => b.y - a.y)[0];
@@ -88,7 +89,6 @@ export default function MeteorGame({ items, settings, onFinish, onExit, onRestar
     if (!m) return false;
     m.targeted = true;
     st.current.bullets.push({ x: size.w / 2, y: size.h - 50, target: m });
-    say(m.item.word);
     setText('');
     return true;
   };

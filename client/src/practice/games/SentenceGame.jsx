@@ -6,7 +6,7 @@ import { REWARD, shuffle, maskWord } from '../utils';
 import { playSound } from '../sound';
 import { showMeme } from '../meme';
 import { api } from '../../api';
-import { speak } from '../../speech';
+import { speak, speakWord } from '../../speech';
 import { useAuth } from '../../auth/AuthContext';
 import { Btn3D, PosBadge } from '../../components/ui';
 import { useAiStatus } from '../../components/words/AiWordsModal';
@@ -66,6 +66,7 @@ export default function SentenceGame({ items, settings, onFinish, onExit, onRest
       const ok = r.score >= PASS_SCORE;
       playSound(ok ? 'correct' : 'wrong', settings);
       showMeme(ok);
+      speakWord(item.word, s);
     } catch (e) {
       toast({ status: 'error', title: e.message });
     } finally {
@@ -112,7 +113,7 @@ export default function SentenceGame({ items, settings, onFinish, onExit, onRest
           {!review ? (
             <>
               <Button borderRadius="16px" variant="ghost" leftIcon={<FiHelpCircle />} onClick={() => setShowHint(true)} isDisabled={!hintText}>Gợi ý</Button>
-              <Button borderRadius="16px" variant="outline" leftIcon={<FiSkipForward />} onClick={() => { playSound('wrong', settings); record(false); }}>Bỏ qua</Button>
+              <Button borderRadius="16px" variant="outline" leftIcon={<FiSkipForward />} onClick={() => { playSound('wrong', settings); speakWord(item.word, s); record(false); }}>Bỏ qua</Button>
               <Btn3D leftIcon={<FiCheck />} isLoading={busy} loadingText="AI đang chấm..." isDisabled={!text.trim() || status?.remaining === 0} onClick={submit} data-testid="submit">Nộp</Btn3D>
             </>
           ) : (

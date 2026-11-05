@@ -3,7 +3,7 @@ import { requireAuth, publicUser } from './auth.js';
 import { vnDay } from './time.js';
 
 // Xu thưởng cho mỗi câu đúng, theo dạng bài (giống site mẫu)
-export const REWARD = { flashcard: 5, quiz: 10, match: 10, typing: 10, listening: 15, mixed: 20, srs: 10, translate: 20, sentence: 20, flappy: 20, meteor: 20 };
+export const REWARD = { flashcard: 50, quiz: 100, match: 100, typing: 100, listening: 150, mixed: 200, srs: 100, translate: 200, sentence: 200, flappy: 200, meteor: 200 };
 export const MODE_LABEL = {
   flashcard: 'Flashcard', quiz: 'Trắc nghiệm', match: 'Nối từ với nghĩa', typing: 'Gõ từ vựng', listening: 'Nghe viết', mixed: 'Luyện tập Hỗn hợp', srs: 'Ôn tập SRS', translate: 'Dịch câu', sentence: 'Luyện đặt câu', flappy: 'Chim Chăm Chỉ', meteor: 'Bắn thiên thạch',
 };

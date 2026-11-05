@@ -128,7 +128,7 @@ with sync_playwright() as p:
         pg.wait_for_selector('[data-testid=sheet-correct], [data-testid=sheet-wrong]')
         assert (pg.locator('[data-testid=sheet-correct]').count() > 0) == (i > 0)
         pg.get_by_role('button', name=re.compile('^Tiếp tục')).click()
-    save_result(4 * 20)
+    save_result(4 * 200)
 
     # chế độ câu tiếng Việt (AI dịch ví dụ)
     open_special('translate')
@@ -152,7 +152,7 @@ with sync_playwright() as p:
         if i == 1:
             pg.screenshot(path=str(OUT / '4-sentence-review.png'))
         pg.get_by_test_id('next').click()
-    save_result(3 * 20)
+    save_result(3 * 200)
     assert u.call('/ai/status')['used'] == 8
 
     # ---------- Chim Chăm Chỉ (lái tự động bằng trạng thái game) ----------
@@ -168,7 +168,7 @@ with sync_playwright() as p:
     pg.wait_for_timeout(9000)
     pg.screenshot(path=str(OUT / '6-flappy-play.png'))
     gained = save_result(None)
-    assert gained >= 3 * 20, gained
+    assert gained >= 3 * 200, gained
     pg.evaluate('clearInterval(window.__auto)')
 
     # ---------- Bắn thiên thạch ----------
@@ -185,7 +185,7 @@ with sync_playwright() as p:
                 shot = True
             pg.get_by_test_id('answer-input').fill(ws[0])
         pg.wait_for_timeout(150)
-    save_result(5 * 20)
+    save_result(5 * 200)
     br.close()
 
 print('errors:', errors)

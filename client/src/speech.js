@@ -15,3 +15,9 @@ export function speak(text, { voiceURI, rate = 1 } = {}) {
   if (chosen) u.voice = chosen;
   window.speechSynthesis.speak(u);
 }
+
+/** Tự đọc từ sau mỗi câu trả lời (đúng hay sai), chậm hơn tốc độ đọc đã chọn một chút */
+export const AUTO_SPEAK_FACTOR = 0.85;
+export function speakWord(word, settings = {}) {
+  speak(word, { voiceURI: settings.voiceURI, rate: Math.max(0.5, (settings.speechRate || 1) * AUTO_SPEAK_FACTOR) });
+}

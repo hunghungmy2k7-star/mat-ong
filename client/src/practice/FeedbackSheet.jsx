@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Box, Flex, Text, Button, IconButton, Icon } from '@chakra-ui/react';
 import { FiPause, FiPlay, FiCheck, FiX, FiVolume2 } from 'react-icons/fi';
-import { speak } from '../speech';
+import { speak, speakWord } from '../speech';
 import { useAuth } from '../auth/AuthContext';
 
 /**
@@ -13,6 +13,9 @@ export default function FeedbackSheet({ item, correct, settings, onNext, onOverr
   const s = user?.settings || {};
   const [paused, setPaused] = useState(!settings.autoNext);
   const [left, setLeft] = useState(settings.autoDelay);
+
+  // tự đọc từ vừa làm (đúng hay sai), chậm hơn một chút
+  useEffect(() => { speakWord(item.word, s); }, [item]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     setLeft(settings.autoDelay);

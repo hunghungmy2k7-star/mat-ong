@@ -75,6 +75,9 @@ def answer_current(page, make_wrong=False):
         inp.press('Enter')
     page.wait_for_selector('[data-testid=sheet-correct], [data-testid=sheet-wrong]')
     ok = page.locator('[data-testid=sheet-correct]').count() > 0
+    # bottom sheet tự đọc lại từ vừa làm (đúng hay sai)
+    page.wait_for_function('window.__spoken.length > (window.__used || 0)')
+    page.evaluate('window.__used = window.__spoken.length')
     page.get_by_role('button', name=re.compile('^Tiếp tục')).click()
     return ok
 
@@ -129,16 +132,22 @@ with sync_playwright() as p:
     page.get_by_test_id('mode-flashcard').click()
     expect(page.get_by_test_id('flashcard')).to_be_visible()
     shot(page, 'flashcard-front')
+    word = page.get_by_test_id('card-main').inner_text()
     page.keyboard.press('Space')
     page.wait_for_timeout(600)
     shot(page, 'flashcard-back')
-    word = page.locator('[data-testid=flashcard] p').nth(1).inner_text()
+    expect(page.get_by_test_id('flashcard')).to_have_attribute('data-side', 'back')
+    expect(page.get_by_test_id('card-main')).to_have_text(dict((w, m) for w, m, _, _ in WORDS)[word])
+    # mặt sau không bị lật ngược (không còn transform sau khi hiệu ứng kết thúc)
+    assert page.evaluate("getComputedStyle(document.querySelector('[data-testid=card-main]').parentElement).transform") in ('none', 'matrix(1, 0, 0, 1, 0, 0)')
     page.get_by_test_id('fc-input').fill(dict((w, m) for w, m, _, _ in WORDS)[word])
     page.get_by_role('button', name='Check').click()
     expect(page.get_by_text('✓ Chính xác!')).to_be_visible()
     for i in range(10):
+        before = page.evaluate('window.__spoken.length')
         page.get_by_role('button', name='Quên' if i % 4 == 3 else 'Thuộc').click()
         page.wait_for_timeout(120)
+        assert page.evaluate('window.__spoken.length') > before, 'phải tự đọc từ sau khi đánh dấu'
     print('flashcard', save_result(page, 'flashcard'))
     page.get_by_role('button', name='Chọn game khác').click()
     expect(page.get_by_test_id('ready-count')).to_have_text(re.compile('2 từ sẵn sàng', re.I))  # 8 từ vừa được đánh dấu đã thuộc

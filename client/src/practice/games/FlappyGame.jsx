@@ -4,7 +4,7 @@ import GameShell from '../GameShell';
 import { REWARD, shuffle } from '../utils';
 import { playSound } from '../sound';
 import { showMeme } from '../meme';
-import { speak } from '../../speech';
+import { speakWord } from '../../speech';
 import { useAuth } from '../../auth/AuthContext';
 
 const LIVES = 5;
@@ -141,7 +141,7 @@ export default function FlappyGame({ items, pool = [], settings, onFinish, onExi
       S.popups.push({ x: BIRD_X, y: S.y - 30, text: msg, color: correct ? '#23AC38' : '#E53E3E', life: 60 });
       playSound(correct ? 'correct' : 'wrong', settings);
       showMeme(correct);
-      if (correct) speak(q.item.word, { voiceURI: s.voiceURI, rate: s.speechRate || 1 });
+      speakWord(q.item.word, s);
       setHud({ q: S.q + 1, lives: S.lives, correct: S.correct });
       if (S.lives <= 0 || S.q + 1 >= questions.length) setTimeout(finish, 700);
     };

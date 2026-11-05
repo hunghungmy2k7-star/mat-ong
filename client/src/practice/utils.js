@@ -1,4 +1,4 @@
-export const REWARD = { flashcard: 5, quiz: 10, match: 10, typing: 10, listening: 15, mixed: 20, srs: 10, translate: 20, sentence: 20, flappy: 20, meteor: 20 };
+export const REWARD = { flashcard: 50, quiz: 100, match: 100, typing: 100, listening: 150, mixed: 200, srs: 100, translate: 200, sentence: 200, flappy: 200, meteor: 200 };
 export const DEFAULT_SRS_MODES = { 0: 'quiz', 1: 'quiz', 2: 'typing', 3: 'listening', 4: 'listening' };
 
 export function shuffle(arr) {
