@@ -7,6 +7,7 @@ import { showMeme } from '../meme';
 import { REWARD, isCorrectMeaning, isCorrectWord } from '../utils';
 import { speak, speakWord } from '../../speech';
 import { useAuth } from '../../auth/AuthContext';
+import { waitMs } from '../settings';
 import { Btn3D } from '../../components/ui';
 
 const face = {
@@ -50,16 +51,31 @@ export default function Flashcard({ items, settings, onFinish, onExit, onRestart
     setIdx(n);
   }, [idx, items.length, onFinish, results]);
 
+  // Sau khi đánh dấu Thuộc/Quên: lật sang mặt đáp án, đọc từ, dừng vài giây rồi mới sang thẻ tiếp
+  const [pending, setPending] = useState(null); // { known, marks }
+  const advance = useCallback((m) => {
+    setPending(null);
+    if (idx + 1 >= items.length) {
+      onFinish(items.filter((it) => it.id in m).map((it) => ({ item: it, correct: m[it.id] })));
+    } else setIdx(idx + 1);
+  }, [idx, items, onFinish]);
+
   const mark = useCallback((known) => {
+    if (pending) return;
     playSound(known ? 'correct' : 'wrong', settings);
     showMeme(known);
     speakWord(item.word, s);
     const nextMarks = { ...marks, [item.id]: known };
     setMarks(nextMarks);
-    if (idx + 1 >= items.length) {
-      onFinish(items.filter((it) => it.id in nextMarks).map((it) => ({ item: it, correct: nextMarks[it.id] })));
-    } else setIdx(idx + 1);
-  }, [marks, item, idx, items, onFinish, settings]);
+    setFlipped(true);
+    setPending({ known, marks: nextMarks });
+  }, [pending, marks, item, settings, s]);
+
+  useEffect(() => {
+    if (!pending) return undefined;
+    const t = setTimeout(() => advance(pending.marks), waitMs(settings));
+    return () => clearTimeout(t);
+  }, [pending, advance, settings]);
 
   const flip = useCallback(() => { setFlipped((f) => !f); playSound('flip', settings); }, [settings]);
 
@@ -75,6 +91,7 @@ export default function Flashcard({ items, settings, onFinish, onExit, onRestart
         else if (k === 's') { e.preventDefault(); say(item.word); }
         return;
       }
+      if (pending && k === 'enter') { e.preventDefault(); advance(pending.marks); return; }
       if (typing) return;
       if (k === ' ') { e.preventDefault(); flip(); }
       else if (k === 'arrowleft') go(-1);
@@ -82,7 +99,7 @@ export default function Flashcard({ items, settings, onFinish, onExit, onRestart
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [mark, go, flip, say, item]);
+  }, [mark, go, flip, say, item, pending, advance]);
 
   const doCheck = () => {
     if (!typed.trim()) return;
@@ -158,6 +175,19 @@ export default function Flashcard({ items, settings, onFinish, onExit, onRestart
         </Text>
       )}
 
+      {pending ? (
+        <Box maxW="420px" mx="auto" mt="22px" textAlign="center" data-testid="fc-pending">
+          <Text fontWeight={800} fontSize="17px" color={pending.known ? '#23AC38' : '#EF5350'}>
+            {pending.known ? '✓ Đã thuộc' : '✗ Chưa thuộc'}: {item.word} = {item.meaning}
+          </Text>
+          <Box mt="10px" h="6px" borderRadius="9999px" bg="#E2E8F0" overflow="hidden" _dark={{ bg: 'whiteAlpha.200' }}>
+            <Box key={idx} h="100%" bg={pending.known ? '#23AC38' : '#EF5350'}
+              sx={{ animation: `fcWait ${waitMs(settings)}ms linear forwards`, '@keyframes fcWait': { from: { width: '100%' }, to: { width: '0%' } } }} />
+          </Box>
+          <Btn3D mt="14px" borderRadius="24px" rightIcon={<FiChevronRight />} onClick={() => advance(pending.marks)} data-testid="fc-next">Tiếp tục</Btn3D>
+          <Hint>Enter để sang thẻ tiếp ngay</Hint>
+        </Box>
+      ) : (
       <Flex justify="center" gap={{ base: '6px', md: '14px' }} mt="22px" wrap="wrap">
         <Box>
           <Button variant="ghost" color="#1CB0F6" leftIcon={<FiChevronLeft />} onClick={() => go(-1)} isDisabled={idx === 0}>Trước</Button>
@@ -181,6 +211,7 @@ export default function Flashcard({ items, settings, onFinish, onExit, onRestart
           <Hint>Ctrl+→ khi nhập</Hint>
         </Box>
       </Flex>
+      )}
     </GameShell>
   );
 }

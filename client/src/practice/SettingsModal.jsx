@@ -64,7 +64,7 @@ export default function SettingsModal({ isOpen, onClose, settings, onChange }) {
             <Flex justify="space-between" align="center" mt="14px">
               <Box>
                 <Text fontWeight={600}>Tự động chuyển câu</Text>
-                <Text fontSize="12px" color="app.muted">Tự động chuyển sau khi hiện đáp án</Text>
+                <Text fontSize="12px" color="app.muted">Dừng lại xem đáp án rồi mới sang từ khác (áp dụng cho mọi dạng bài)</Text>
               </Box>
               <Switch colorScheme="purple" isChecked={settings.autoNext} onChange={(e) => onChange({ autoNext: e.target.checked })} />
             </Flex>
@@ -74,11 +74,11 @@ export default function SettingsModal({ isOpen, onClose, settings, onChange }) {
                   <Text fontSize="14px">Thời gian chờ</Text>
                   <Badge colorScheme="purple" borderRadius="8px">{settings.autoDelay}S</Badge>
                 </Flex>
-                <Slider mt="6px" min={1} max={10} value={settings.autoDelay} onChange={(v) => onChange({ autoDelay: v })} aria-label="Thời gian chờ">
+                <Slider mt="6px" min={3} max={10} value={settings.autoDelay} onChange={(v) => onChange({ autoDelay: v })} aria-label="Thời gian chờ">
                   <SliderTrack><SliderFilledTrack bg="#A855F7" /></SliderTrack>
                   <SliderThumb bg="#A855F7" />
                 </Slider>
-                <Flex justify="space-between" fontSize="11px" color="app.muted"><span>1s</span><span>10s</span></Flex>
+                <Flex justify="space-between" fontSize="11px" color="app.muted"><span>3s</span><span>10s</span></Flex>
               </>
             )}
           </Panel>

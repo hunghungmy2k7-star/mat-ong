@@ -6,6 +6,7 @@ import { speakWord } from '../../speech';
 import { useAuth } from '../../auth/AuthContext';
 import { showMeme } from '../meme';
 import { REWARD, shuffle } from '../utils';
+import { waitMs } from '../settings';
 
 const PAIRS_PER_ROUND = 8;
 const LIVES = 5;
@@ -26,6 +27,7 @@ export default function MatchGame({ items, settings, onFinish, onExit, onRestart
   const [results, setResults] = useState({}); // id -> bool
   const [sel, setSel] = useState(null); // {side, id}
   const [flash, setFlash] = useState(null); // {ids:[], ok}
+  const [last, setLast] = useState(null); // cặp vừa chọn: {item, ok} – hiện đáp án trong lúc chờ
   const ended = useRef(false);
   const resultsRef = useRef(results);
   resultsRef.current = results;
@@ -56,7 +58,7 @@ export default function MatchGame({ items, settings, onFinish, onExit, onRestart
     setSel(null);
   }, [cur, round, rounds.length, finish, items]);
 
-  const timeLeft = useCountdown(roundTime, { resetKey: round, paused: ended.current, onExpire: () => closeRound(resultsRef.current, lives) });
+  const timeLeft = useCountdown(roundTime, { resetKey: round, paused: ended.current || Boolean(flash), onExpire: () => closeRound(resultsRef.current, lives) });
 
   const choose = (side, id) => {
     if (matched.has(id) || flash) return;
@@ -68,17 +70,22 @@ export default function MatchGame({ items, settings, onFinish, onExit, onRestart
     const rightId = side === 'R' ? id : sel.id;
     const leftItem = cur.find((it) => it.id === leftId);
     if (leftItem) speakWord(leftItem.word, user?.settings || {});
+    const wait = waitMs(settings);
+    setLast({ item: leftItem, ok: leftId === rightId });
     if (leftId === rightId) {
       playSound('correct', settings);
       showMeme(true);
       const res = { ...results, [leftId]: !mistakes.has(leftId) };
-      const m = new Set(matched).add(leftId);
       setResults(res);
-      setMatched(m);
       setSel(null);
-      setFlash({ ids: [leftId], ok: true });
-      setTimeout(() => setFlash(null), 250);
-      if (m.size === cur.length) setTimeout(() => closeRound(res, lives), 350);
+      // giữ cặp đúng sáng xanh vài giây rồi mới ẩn, sau đó mới sang vòng mới
+      setFlash({ ids: [leftId], ok: true, side: { L: leftId, R: leftId } });
+      setTimeout(() => {
+        const m = new Set(matched).add(leftId);
+        setMatched(m);
+        setFlash(null);
+        if (m.size === cur.length) closeRound(res, lives);
+      }, wait);
     } else {
       playSound('wrong', settings);
       showMeme(false);
@@ -86,13 +93,15 @@ export default function MatchGame({ items, settings, onFinish, onExit, onRestart
       const l = lives - 1;
       setLives(l);
       setFlash({ ids: [leftId, rightId], ok: false, side: { L: leftId, R: rightId } });
-      setTimeout(() => { setFlash(null); setSel(null); if (l <= 0) closeRound(results, 0); }, 500);
+      setTimeout(() => { setFlash(null); setSel(null); if (l <= 0) closeRound(results, 0); }, wait);
     }
   };
 
   const btnStyle = (side, id) => {
     const selected = sel?.side === side && sel.id === id;
     const bad = flash && !flash.ok && flash.side?.[side] === id;
+    const good = flash && flash.ok && flash.ids.includes(id);
+    if (good) return { bg: '#23AC38', color: 'white', borderColor: '#23AC38', boxShadow: '0 3px 0 0 #1F8F31' };
     if (bad) return { bg: '#EF5350', color: 'white', borderColor: '#EF5350', boxShadow: '0 3px 0 0 #C62828' };
     if (selected) return { bg: '#4CC764', color: 'white', borderColor: '#4CC764', boxShadow: '0 3px 0 0 #1F8F31' };
     return { bg: 'app.card', color: 'app.text', borderColor: 'app.line', boxShadow: '0 2px 0 0 #E5E5E5' };
@@ -147,6 +156,11 @@ export default function MatchGame({ items, settings, onFinish, onExit, onRestart
           </Flex>
         </Grid>
         <Text textAlign="center" mt="14px" fontWeight={700}>Đã ghép: {matched.size} / {cur.length}</Text>
+        {last?.item && (
+          <Text textAlign="center" mt="8px" fontSize="15px" fontWeight={700} color={last.ok ? '#23AC38' : '#EF5350'} data-testid="match-last">
+            {last.ok ? '✓' : '✗'} {last.item.word}{last.item.ipa ? ` ${last.item.ipa}` : ''} = {last.item.meaning}
+          </Text>
+        )}
       </Box>
     </GameShell>
   );

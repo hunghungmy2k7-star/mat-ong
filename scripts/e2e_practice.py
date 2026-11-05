@@ -148,6 +148,17 @@ with sync_playwright() as p:
         page.get_by_role('button', name='Quên' if i % 4 == 3 else 'Thuộc').click()
         page.wait_for_timeout(120)
         assert page.evaluate('window.__spoken.length') > before, 'phải tự đọc từ sau khi đánh dấu'
+        # dừng lại hiện đáp án, mặt sau thẻ, rồi mới sang thẻ tiếp
+        expect(page.get_by_test_id('fc-pending')).to_be_visible()
+        expect(page.get_by_test_id('flashcard')).to_have_attribute('data-side', 'back')
+        if i == 0:
+            page.wait_for_timeout(2500)
+            expect(page.get_by_test_id('fc-pending')).to_be_visible()  # chưa tự chuyển trước 3 giây
+            expect(page.get_by_test_id('fc-pending')).to_be_hidden(timeout=3000)  # tự chuyển sau ~3 giây
+        elif i < 9:
+            page.get_by_test_id('fc-next').click()
+        else:
+            page.keyboard.press('Enter')
     print('flashcard', save_result(page, 'flashcard'))
     page.get_by_role('button', name='Chọn game khác').click()
     expect(page.get_by_test_id('ready-count')).to_have_text(re.compile('2 từ sẵn sàng', re.I))  # 8 từ vừa được đánh dấu đã thuộc
@@ -184,18 +195,23 @@ with sync_playwright() as p:
     shot(page, 'match')
     page.get_by_test_id(f'L-{ids[0]}').click()
     page.get_by_test_id(f'R-{ids[1]}').click()
-    page.wait_for_timeout(650)
-    for i in ids:
+    expect(page.get_by_test_id('match-last')).to_contain_text('✗')
+    page.wait_for_timeout(3300)  # chờ đáp án sai hiện đủ lâu
+    for n, i in enumerate(ids):
         page.get_by_test_id(f'L-{i}').click()
         page.get_by_test_id(f'R-{i}').click()
-        page.wait_for_timeout(300)
+        if n == 0:
+            expect(page.get_by_test_id('match-last')).to_contain_text('✓')
+            page.wait_for_timeout(2000)
+            expect(page.get_by_test_id(f'L-{i}')).to_be_visible()  # cặp đúng vẫn hiện trong lúc chờ
+        expect(page.get_by_test_id(f'L-{i}')).to_be_hidden(timeout=5000)
     page.wait_for_timeout(600)
-    if page.locator('[data-testid^=L-]').count() and not page.get_by_test_id('result').count():  # vòng 2
+    if page.locator('[data-testid^=L-]:visible').count() and not page.get_by_test_id('result').count():  # vòng 2
         for x in page.locator('[data-testid^=L-]').all():
             i = x.get_attribute('data-testid')[2:]
             page.get_by_test_id(f'L-{i}').click()
             page.get_by_test_id(f'R-{i}').click()
-            page.wait_for_timeout(300)
+            expect(page.get_by_test_id(f'L-{i}')).to_be_hidden(timeout=5000)
     print('match', save_result(page, 'match'))
 
     # 5) Gõ từ (dùng gợi ý 1 lần, 1 câu sai)

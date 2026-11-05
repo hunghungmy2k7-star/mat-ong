@@ -5,6 +5,7 @@ import { REWARD, shuffle } from '../utils';
 import { playSound } from '../sound';
 import { showMeme } from '../meme';
 import { speakWord } from '../../speech';
+import { waitMs } from '../settings';
 import { useAuth } from '../../auth/AuthContext';
 
 const LIVES = 5;
@@ -68,7 +69,8 @@ export default function FlappyGame({ items, pool = [], settings, onFinish, onExi
   const wrapRef = useRef(null);
   const [size, setSize] = useState({ w: 480, h: 600 });
   const [phase, setPhase] = useState('ready'); // ready | playing | over
-  const [hud, setHud] = useState({ q: 0, lives: LIVES, correct: 0 });
+  const [hud, setHud] = useState({ q: 0, done: 0, lives: LIVES, correct: 0 });
+  const [last, setLast] = useState(null); // câu vừa trả lời: hiện đáp án trong lúc chờ cột tiếp theo
   const st = useRef(null);
   const results = useRef([]);
   const finished = useRef(false);
@@ -142,8 +144,11 @@ export default function FlappyGame({ items, pool = [], settings, onFinish, onExi
       playSound(correct ? 'correct' : 'wrong', settings);
       showMeme(correct);
       speakWord(q.item.word, s);
-      setHud({ q: S.q + 1, lives: S.lives, correct: S.correct });
-      if (S.lives <= 0 || S.q + 1 >= questions.length) setTimeout(finish, 700);
+      // dừng vài giây (không có cột mới) để người chơi xem đáp án rồi mới sang từ tiếp theo
+      S.holdUntil = S.t + waitMs(settings);
+      setLast({ item: q.item, ok: correct });
+      setHud((h) => ({ ...h, done: h.done + 1, lives: S.lives, correct: S.correct }));
+      if (S.lives <= 0 || S.q + 1 >= questions.length) setTimeout(finish, waitMs(settings));
     };
 
     const step = (now) => {
@@ -155,17 +160,17 @@ export default function FlappyGame({ items, pool = [], settings, onFinish, onExi
       if (phase === 'playing' && q && !finished.current) {
         S.vy += GRAVITY * k;
         S.y += S.vy * k;
-        S.gate.x -= SPEED * k;
+        if (S.gate) S.gate.x -= SPEED * k;
         if (S.inv > 0) S.inv -= k;
         // chạm đất / trần
         if (S.y > playH - BIRD_R) {
           S.y = playH - BIRD_R; S.vy = FLAP;
-          if (!S.gate.resolved && S.inv <= 0) resolve(false, 'Chạm đất!');
+          if (S.gate && !S.gate.resolved && S.inv <= 0) resolve(false, 'Chạm đất!');
         }
         if (S.y < BIRD_R) { S.y = BIRD_R; S.vy = 0; }
         // va chạm cột khi đang đi qua
         const g = S.gate;
-        const inX = BIRD_X + BIRD_R > g.x && BIRD_X - BIRD_R < g.x + GATE_W;
+        const inX = g && BIRD_X + BIRD_R > g.x && BIRD_X - BIRD_R < g.x + GATE_W;
         if (inX && !g.resolved) {
           const inTop = Math.abs(S.y - o1) < GAP / 2 - BIRD_R + 4;
           const inBottom = Math.abs(S.y - o2) < GAP / 2 - BIRD_R + 4;
@@ -175,10 +180,16 @@ export default function FlappyGame({ items, pool = [], settings, onFinish, onExi
             resolve(ok, ok ? `+${REWARD.flappy}` : `Sai! ${q.item.word}`);
           }
         }
-        if (g.x + GATE_W < -10) {
+        if (g && g.x + GATE_W < -10) {
           if (!g.resolved) resolve(false, 'Bỏ lỡ!');
+          S.gate = null;
+        }
+        // hết thời gian chờ → câu tiếp theo + cột mới
+        if (!S.gate && S.t >= (S.holdUntil || 0) && S.q + 1 < questions.length && S.lives > 0) {
           S.q += 1;
           S.gate = { x: W + 20, resolved: false };
+          setHud((h) => ({ ...h, q: S.q }));
+          setLast(null);
         }
       }
       // ---- vẽ ----
@@ -191,7 +202,7 @@ export default function FlappyGame({ items, pool = [], settings, onFinish, onExi
         if (c[0] < -80) c[0] = W + 40;
         ctx.beginPath(); ctx.arc(c[0], c[1], 18, 0, 7); ctx.arc(c[0] + 20, c[1] - 8, 22, 0, 7); ctx.arc(c[0] + 44, c[1], 17, 0, 7); ctx.fill();
       });
-      if (q) {
+      if (q && S.gate) {
         const g = S.gate;
         ctx.fillStyle = '#22C55E'; ctx.strokeStyle = '#15803D'; ctx.lineWidth = 3;
         for (const [y0, y1] of [[0, o1 - GAP / 2], [o1 + GAP / 2, o2 - GAP / 2], [o2 + GAP / 2, playH]]) {
@@ -217,7 +228,7 @@ export default function FlappyGame({ items, pool = [], settings, onFinish, onExi
         ctx.fillText(p.text, p.x + 20, p.y);
         ctx.globalAlpha = 1;
       });
-      window.__flappyState = { y: S.y, vy: S.vy, gateX: S.gate.x, target: q ? (q.correctTop ? o1 : o2) : null, q: S.q, phase };
+      window.__flappyState = { y: S.y, vy: S.vy, gateX: S.gate ? S.gate.x : null, target: q && S.gate ? (q.correctTop ? o1 : o2) : (o1 + o2) / 2, q: S.q, phase };
       raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
@@ -227,12 +238,20 @@ export default function FlappyGame({ items, pool = [], settings, onFinish, onExi
   const q = questions[Math.min(hud.q, questions.length - 1)];
 
   return (
-    <GameShell coins={hud.correct * REWARD.flappy} current={hud.q} total={questions.length} label={`📚 ${hud.q}/${questions.length} · ❤ ${hud.lives}`}
+    <GameShell coins={hud.correct * REWARD.flappy} current={hud.done} total={questions.length} label={`📚 ${hud.done}/${questions.length} · ❤ ${hud.lives}`}
       answered={results.current.length} onRestart={onRestart} onExit={onExit} onEnd={finish} maxW="560px">
       <Box ref={wrapRef} maxW="520px" mx="auto">
         <Flex bg="app.card" borderRadius="16px" px="14px" py="10px" mb="10px" align="center" gap="8px" border="2px solid" borderColor="app.line">
-          <Text fontSize="13px" color="app.muted" flexShrink={0}>Bay qua ô có nghĩa:</Text>
-          <Text fontWeight={800} fontSize="17px" noOfLines={2} data-testid="prompt">{q?.item.meaning}</Text>
+          {last ? (
+            <Text fontWeight={800} fontSize="16px" color={last.ok ? '#23AC38' : '#EF5350'} noOfLines={2} data-testid="flappy-last">
+              {last.ok ? '✓ Đúng' : '✗ Sai'}: {last.item.word}{last.item.ipa ? ` ${last.item.ipa}` : ''} = {last.item.meaning}
+            </Text>
+          ) : (
+            <>
+              <Text fontSize="13px" color="app.muted" flexShrink={0}>Bay qua ô có nghĩa:</Text>
+              <Text fontWeight={800} fontSize="17px" noOfLines={2} data-testid="prompt">{q?.item.meaning}</Text>
+            </>
+          )}
         </Flex>
         <Box position="relative" borderRadius="20px" overflow="hidden" border="2px solid #1A202C" onPointerDown={(e) => { e.preventDefault(); flap(); }}
           style={{ touchAction: 'none', width: size.w, height: size.h, maxWidth: '100%' }}>

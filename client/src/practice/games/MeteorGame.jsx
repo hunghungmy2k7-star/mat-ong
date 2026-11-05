@@ -7,6 +7,7 @@ import { playSound } from '../sound';
 import { showMeme } from '../meme';
 import { speak, speakWord } from '../../speech';
 import { useAuth } from '../../auth/AuthContext';
+import { waitMs } from '../settings';
 
 const LIVES = 5;
 const MAX_ON_SCREEN = 3;
@@ -38,6 +39,7 @@ export default function MeteorGame({ items, settings, onFinish, onExit, onRestar
   const [text, setText] = useState('');
   const [miss, setMiss] = useState(false);
   const [ship, setShip] = useState(0);
+  const [last, setLast] = useState(null); // từ vừa bắn trúng / để rơi: hiện đáp án
   const st = useRef({ meteors: [], bullets: [], booms: [], next: 0, spawnIn: 30, lives: LIVES, correct: 0, done: 0, t: 0, stars: [] });
   const results = useRef([]);
   const finished = useRef(false);
@@ -68,10 +70,13 @@ export default function MeteorGame({ items, settings, onFinish, onExit, onRestar
     S.done += 1;
     if (correct) S.correct += 1; else S.lives -= 1;
     speakWord(m.item.word, s);
+    setLast({ item: m.item, ok: correct, at: Date.now() });
+    // chờ vài giây rồi mới thả thiên thạch mới
+    S.spawnIn = Math.max(S.spawnIn, waitMs(settings) / 16.67);
     playSound(correct ? 'correct' : 'wrong', settings);
     showMeme(correct);
     setHud({ done: S.done, lives: S.lives, correct: S.correct });
-    if (S.lives <= 0 || S.done >= queue.length) setTimeout(finish, 600);
+    if (S.lives <= 0 || S.done >= queue.length) setTimeout(finish, waitMs(settings));
   }, [settings, queue.length, finish, s]);
 
   // Mục tiêu gợi ý = thiên thạch thấp nhất (sắp chạm đất)
@@ -229,6 +234,11 @@ export default function MeteorGame({ items, settings, onFinish, onExit, onRestar
             data-testid="answer-input" />
           <Button h="52px" borderRadius="16px" leftIcon={<FiHelpCircle />} onClick={hint}>Gợi ý</Button>
         </Flex>
+        {last && (
+          <Text mt="8px" textAlign="center" fontWeight={800} fontSize="15px" color={last.ok ? '#23AC38' : '#EF5350'} data-testid="meteor-last">
+            {last.ok ? '✓ Bắn trúng' : '✗ Để rơi'}: {last.item.word}{last.item.ipa ? ` ${last.item.ipa}` : ''} = {last.item.meaning}
+          </Text>
+        )}
         <Text mt="6px" fontSize="12px" color="app.muted" textAlign="center">⌨ Gõ từ tiếng Anh để bắn · Ctrl+Space: gợi ý · Ctrl: nghe từ</Text>
       </Box>
     </GameShell>
