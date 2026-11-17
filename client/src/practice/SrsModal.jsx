@@ -202,11 +202,12 @@ export default function SrsModal({ isOpen, onClose, categories = [], pathId, tit
           </Badge>
           <Flex align="center" gap="6px">
             <Text fontSize="13px">Số từ:</Text>
-            <NumberInput size="sm" maxW="70px" min={1} max={200} value={limit} onChange={(_, v) => setLimit(Number.isFinite(v) ? v : 20)}>
+            <NumberInput size="sm" maxW="90px" min={1} max={1000} keepWithinRange clampValueOnBlur value={limit}
+              onChange={(_, v) => setLimit(Number.isFinite(v) ? Math.min(1000, v) : '')} aria-label="Số từ ôn (tối đa 1000)">
               <NumberInputField borderRadius="10px" />
             </NumberInput>
           </Flex>
-          <Btn3D leftIcon={<FiPlay />} isDisabled={!data?.due} onClick={() => onStart({ limit, categoryIds: cat ? [Number(cat)] : [], pathId })}>
+          <Btn3D leftIcon={<FiPlay />} isDisabled={!data?.due} onClick={() => onStart({ limit: Math.min(1000, Math.max(1, limit || 20)), categoryIds: cat ? [Number(cat)] : [], pathId })}>
             Bắt đầu ôn tập
           </Btn3D>
         </ModalFooter>

@@ -54,7 +54,7 @@ export function registerSrsRoutes(app) {
   app.get('/api/srs/candidates', requireAuth, (req, res) => {
     const now = new Date().toISOString();
     const { where, params } = scope(req.user.id, req.query);
-    const limit = Math.min(200, Math.max(1, Number(req.query.limit) || 20));
+    const limit = Math.min(1000, Math.max(1, Number(req.query.limit) || 20));
     const items = db
       .prepare(`SELECT * FROM vocabularies v WHERE ${where.join(' AND ')} AND ${DUE_SQL}
                 ORDER BY CASE WHEN v.next_review_at IS NULL THEN 1 ELSE 0 END, v.next_review_at, RANDOM() LIMIT ?`)
