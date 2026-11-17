@@ -196,22 +196,20 @@ with sync_playwright() as p:
     page.get_by_test_id(f'L-{ids[0]}').click()
     page.get_by_test_id(f'R-{ids[1]}').click()
     expect(page.get_by_test_id('match-last')).to_contain_text('✗')
-    page.wait_for_timeout(3300)  # chờ đáp án sai hiện đủ lâu
+    page.wait_for_timeout(700)  # Nối từ không dừng lâu sau mỗi lượt chọn
     for n, i in enumerate(ids):
         page.get_by_test_id(f'L-{i}').click()
         page.get_by_test_id(f'R-{i}').click()
         if n == 0:
             expect(page.get_by_test_id('match-last')).to_contain_text('✓')
-            page.wait_for_timeout(2000)
-            expect(page.get_by_test_id(f'L-{i}')).to_be_visible()  # cặp đúng vẫn hiện trong lúc chờ
-        expect(page.get_by_test_id(f'L-{i}')).to_be_hidden(timeout=5000)
+        expect(page.get_by_test_id(f'L-{i}')).to_be_hidden(timeout=1000)  # ẩn ngay, làm tiếp luôn
     page.wait_for_timeout(600)
     if page.locator('[data-testid^=L-]:visible').count() and not page.get_by_test_id('result').count():  # vòng 2
         for x in page.locator('[data-testid^=L-]').all():
             i = x.get_attribute('data-testid')[2:]
             page.get_by_test_id(f'L-{i}').click()
             page.get_by_test_id(f'R-{i}').click()
-            expect(page.get_by_test_id(f'L-{i}')).to_be_hidden(timeout=5000)
+            expect(page.get_by_test_id(f'L-{i}')).to_be_hidden(timeout=1000)
     print('match', save_result(page, 'match'))
 
     # 5) Gõ từ (dùng gợi ý 1 lần, 1 câu sai)

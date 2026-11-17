@@ -6,7 +6,6 @@ import { speakWord } from '../../speech';
 import { useAuth } from '../../auth/AuthContext';
 import { showMeme } from '../meme';
 import { REWARD, shuffle } from '../utils';
-import { waitMs } from '../settings';
 
 const PAIRS_PER_ROUND = 8;
 const LIVES = 5;
@@ -70,7 +69,6 @@ export default function MatchGame({ items, settings, onFinish, onExit, onRestart
     const rightId = side === 'R' ? id : sel.id;
     const leftItem = cur.find((it) => it.id === leftId);
     if (leftItem) speakWord(leftItem.word, user?.settings || {});
-    const wait = waitMs(settings);
     setLast({ item: leftItem, ok: leftId === rightId });
     if (leftId === rightId) {
       playSound('correct', settings);
@@ -78,14 +76,14 @@ export default function MatchGame({ items, settings, onFinish, onExit, onRestart
       const res = { ...results, [leftId]: !mistakes.has(leftId) };
       setResults(res);
       setSel(null);
-      // giữ cặp đúng sáng xanh vài giây rồi mới ẩn, sau đó mới sang vòng mới
+      // Nối từ không cần dừng: cặp đúng nháy xanh rồi ẩn ngay, đáp án vẫn hiện ở dòng dưới
       setFlash({ ids: [leftId], ok: true, side: { L: leftId, R: leftId } });
       setTimeout(() => {
         const m = new Set(matched).add(leftId);
         setMatched(m);
         setFlash(null);
-        if (m.size === cur.length) closeRound(res, lives);
-      }, wait);
+        if (m.size === cur.length) setTimeout(() => closeRound(res, lives), 350);
+      }, 250);
     } else {
       playSound('wrong', settings);
       showMeme(false);
@@ -93,7 +91,7 @@ export default function MatchGame({ items, settings, onFinish, onExit, onRestart
       const l = lives - 1;
       setLives(l);
       setFlash({ ids: [leftId, rightId], ok: false, side: { L: leftId, R: rightId } });
-      setTimeout(() => { setFlash(null); setSel(null); if (l <= 0) closeRound(results, 0); }, wait);
+      setTimeout(() => { setFlash(null); setSel(null); if (l <= 0) closeRound(results, 0); }, 500);
     }
   };
 
