@@ -5,7 +5,7 @@ import GameShell, { useCountdown } from '../GameShell';
 import FeedbackSheet from '../FeedbackSheet';
 import { playSound } from '../sound';
 import { showMeme } from '../meme';
-import { REWARD, DEFAULT_SRS_MODES, buildOptions, maskWord, isCorrectWord, hintPattern, revealOne, shuffle } from '../utils';
+import { REWARD, DEFAULT_SRS_MODES, buildOptions, maskWord, isCorrectWord, hintPattern, revealOne, shuffle, typingProgress } from '../utils';
 import { speak } from '../../speech';
 import { useAuth } from '../../auth/AuthContext';
 import { Btn3D } from '../../components/ui';
@@ -123,10 +123,14 @@ function TypeQuestion({ q, onAnswer, answered }) {
     setHints((h) => h - 1);
   }, [hints, answered, word, q.noHint]);
 
+  // Bấm Kiểm tra khi chưa gõ gì = bỏ qua câu này (tính sai, hiện đáp án)
   const submit = () => {
-    if (answered || !value.trim()) return;
+    if (answered) return;
     onAnswer(isCorrectWord(value, word));
   };
+
+  // Báo đúng/sai hướng ngay khi đang gõ (tắt ở cấp SRS không gợi ý)
+  const live = useMemo(() => (q.noHint || answered ? null : typingProgress(value, word)), [value, word, q.noHint, answered]);
 
   useEffect(() => {
     const onKey = (e) => {
@@ -177,9 +181,25 @@ function TypeQuestion({ q, onAnswer, answered }) {
         <Text textAlign="center" fontSize="14px" color="app.muted" mt="4px">{masked || 'Từ này chưa có ví dụ.'}</Text>
       )}
 
-      <Input ref={inputRef} mt="12px" h="48px" textAlign="center" fontSize="17px" borderRadius="9999px" borderWidth="2px" focusBorderColor="#1CB0F6"
+      <Input ref={inputRef} mt="12px" h="48px" textAlign="center" fontSize="17px" borderRadius="9999px" borderWidth="2px"
+        borderColor={live?.state === 'wrong' ? '#EF5350' : live?.state ? '#23AC38' : 'app.line'}
+        focusBorderColor={live?.state === 'wrong' ? '#EF5350' : live?.state ? '#23AC38' : '#1CB0F6'}
+        _hover={{}}
         placeholder={listening ? 'Gõ từ bạn nghe được...' : 'Gõ từ tiếng Anh...'} value={value} onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && !e.ctrlKey && submit()} isReadOnly={answered} autoComplete="off" spellCheck={false} data-testid="answer-input" />
+      <Flex justify="center" mt="6px" minH="22px" fontSize="13px" fontWeight={700} align="center" gap="8px" data-testid="live-feedback" data-state={live?.state || 'none'}>
+        {live?.state === 'done' && <Text color="#23AC38">✓ Chính xác! Bấm Enter để kiểm tra</Text>}
+        {live?.state === 'ok' && <Text color="#23AC38">✓ Đúng hướng ({live.good}/{live.total} ký tự)</Text>}
+        {live?.state === 'wrong' && (
+          <>
+            <Text as="span" fontFamily="mono" fontSize="15px">
+              <Text as="span" color="#23AC38">{live.goodText}</Text>
+              <Text as="span" color="#EF5350" textDecoration="underline">{live.badText}</Text>
+            </Text>
+            <Text color="#EF5350">✗ Sai hướng từ ký tự thứ {live.good + 1}</Text>
+          </>
+        )}
+      </Flex>
 
       <Flex mt="16px" gap="10px" justify="center" wrap="wrap">
         <Flex direction="column" align="center" gap="4px">
@@ -191,7 +211,7 @@ function TypeQuestion({ q, onAnswer, answered }) {
           <Text fontSize="10px" color="app.muted">Ctrl + Space</Text>
         </Flex>
         <Flex direction="column" align="center" gap="4px">
-          <Btn3D borderRadius="9999px" px="24px" onClick={submit} isDisabled={answered || !value.trim()}>Kiểm tra</Btn3D>
+          <Btn3D borderRadius="9999px" px="24px" onClick={submit} isDisabled={answered}>{value.trim() ? 'Kiểm tra' : 'Bỏ qua / Xem đáp án'}</Btn3D>
           <Text fontSize="10px" color="app.muted">Enter</Text>
         </Flex>
       </Flex>

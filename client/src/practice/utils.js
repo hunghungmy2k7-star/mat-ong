@@ -26,6 +26,22 @@ export function normalizeAnswer(s, { dropMarks = false } = {}) {
 
 export const isCorrectWord = (input, word) => normalizeAnswer(input) === normalizeAnswer(word);
 
+/**
+ * Tiến độ khi đang gõ: so từng ký tự (không phân biệt hoa/thường, dấu nháy, khoảng trắng thừa).
+ * state: null (chưa gõ) | 'ok' (đúng hướng) | 'done' (đã khớp) | 'wrong' (sai từ ký tự good+1)
+ */
+export function typingProgress(input, word) {
+  const norm = (t) => String(t || '').toLowerCase().replace(/[’‘`´]/g, "'").replace(/\s+/g, ' ').replace(/^\s+/, '');
+  const a = norm(input);
+  const b = norm(word).trim();
+  if (!a.trim()) return null;
+  if (isCorrectWord(input, word)) return { state: 'done', good: b.length, total: b.length };
+  let i = 0;
+  while (i < a.length && i < b.length && a[i] === b[i]) i += 1;
+  if (i === a.length) return { state: 'ok', good: i, total: b.length };
+  return { state: 'wrong', good: i, total: b.length, goodText: a.slice(0, i), badText: a.slice(i) };
+}
+
 // Nghĩa tiếng Việt: chấp nhận khi khớp một trong các nghĩa (tách bởi , ; /), không phân biệt dấu
 export function isCorrectMeaning(input, meaning) {
   const a = normalizeAnswer(input, { dropMarks: true });

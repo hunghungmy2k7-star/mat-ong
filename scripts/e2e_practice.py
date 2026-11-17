@@ -71,8 +71,12 @@ def answer_current(page, make_wrong=False):
             word = page.evaluate('(window.__used = window.__spoken.length, window.__spoken[window.__spoken.length - 1])')
         else:
             word = MEANING_TO_WORD[page.locator('[data-testid=prompt]').inner_text()]
-        inp.fill('sai rồi' if make_wrong else word.upper())  # viết hoa để kiểm tra so khớp không phân biệt hoa/thường
-        inp.press('Enter')
+        if make_wrong:
+            inp.fill('')  # không gõ gì vẫn kiểm tra được (tính sai)
+            page.get_by_role('button', name='Bỏ qua / Xem đáp án').click()
+        else:
+            inp.fill(word.upper())  # viết hoa để kiểm tra so khớp không phân biệt hoa/thường
+            inp.press('Enter')
     page.wait_for_selector('[data-testid=sheet-correct], [data-testid=sheet-wrong]')
     ok = page.locator('[data-testid=sheet-correct]').count() > 0
     # bottom sheet tự đọc lại từ vừa làm (đúng hay sai)
@@ -218,6 +222,22 @@ with sync_playwright() as p:
     page.wait_for_selector('[data-testid=answer-input]')
     page.get_by_role('button', name=re.compile('Gợi ý')).click()
     shot(page, 'typing-hint')
+    # báo đúng/sai hướng khi đang gõ
+    w = MEANING_TO_WORD[page.get_by_test_id('prompt').inner_text()]
+    inp = page.get_by_test_id('answer-input')
+    lf = page.get_by_test_id('live-feedback')
+    expect(lf).to_have_attribute('data-state', 'none')
+    inp.fill(w[:2].upper())
+    expect(lf).to_have_attribute('data-state', 'ok')
+    expect(lf).to_contain_text('Đúng hướng')
+    inp.fill(w[:2] + 'zz')
+    expect(lf).to_have_attribute('data-state', 'wrong')
+    expect(lf).to_contain_text('Sai hướng từ ký tự thứ 3')
+    shot(page, 'typing-live-wrong')
+    inp.fill(w)
+    expect(lf).to_have_attribute('data-state', 'done')
+    inp.fill('')
+    expect(page.get_by_role('button', name='Bỏ qua / Xem đáp án')).to_be_enabled()
     play_questions(page, 10, wrong_at=(3,))
     print('typing', save_result(page, 'typing'))
 
